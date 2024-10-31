@@ -8,24 +8,22 @@
 //below -> WHITE
 //above -> BLACK
 
+#pragma region PIN_DEFINITION
+
 #define LEFT_LINESENSOR_PIN A5
 #define RIGHT_LINESENSOR_PIN A4
+#define TELECOM_PIN A0
 
 #define RM_DIR 13
 #define RM_PWM 11
 #define LM_DIR 12
 #define LM_PWM 10
 
-enum SumoState  
-{
-  Search,
-  Combat
-};
+#pragma endregion
+
 XMotionClass motion;
 
-byte testSpeed = 10;
-SumoState state = SumoState::Search;
-
+#pragma region SENSOR_READINGS
 //sensor readings
 int leftIR = 0;
 int rightIR = 0;
@@ -36,7 +34,14 @@ int frontRightIR = 0;
 int leftLineRead = 1000;
 int rightLineRead = 1000;
 
-//function declarations
+int telecomRead = 0;
+bool robot_ready_state = false;
+bool initial_start_pin_state = false;
+#pragma endregion
+
+#pragma region FUNCTION_DECLARATIONS
+
+//IR Sensor reading
 int LeftIR();
 int RightIR();
 int FrontRightIR();
@@ -44,25 +49,33 @@ int FrontLeftIR();
 int FrontMidIR();
 
 void ReadIRSensorInfo();
+
+
+//LINE Sensor reading
 void ReadLineSensorInfo();
 
-bool SeesWhite();
+
+
+//enemy detection functionns
 bool SeesAnything();
 
 bool EnemyIsRight();
 bool EnemyIsLeft();
 bool EnemyIsFront();
 
-void SearchForEnemies();
 
+//directional movement functions
 void TurnAroundRight(int RightSpeed , int time);
 
 void TurnForwardRight(int RightSpeed , int time);
 void TurnBackRight(int Speed,int time);
 
+//RUSH B DO NOT STOP
 void RushB(int RushBSpeed,int time);
 
-void Turn180(int speed = 5 , float radius = 0.40);
+void Execute();
+
+#pragma endregion
 
 void setup() {
 
@@ -74,55 +87,63 @@ void setup() {
 
   pinMode(LEFT_LINESENSOR_PIN,INPUT);
   pinMode(RIGHT_LINESENSOR_PIN,INPUT);
-
-  Serial.begin(9600);
+  pinMode(TELECOM_PIN,INPUT);
 }
 
 void loop() {
-  //store IR sensor data
+  Robochallange();
+}
 
-  //TODO:Add remote control thing
-
-  ReadIRSensorInfo();
-  ReadLineSensorInfo();
-
-  if(!SeesAnything())
+void Robochallange()
+{
+  // initial check blyat
+  initial_start_pin_state = digitalRead(TELECOM_PIN);
+  if (initial_start_pin_state == 1)
   {
-    //while no enemy detected,rotate around like a jerk
-    TurnAroundRight(15 , 50);
-    return;
-  }
-
-  else
-  {
-    if(EnemyIsFront())
+    // error BLYAT,PIZDEC
+    while (true)
     {
-      //Rush B
-      //TODO:Modify RUSHB speed
-
-      RushB(40,50);
-
-      return;
-    }
-
-    //rotate towards enemy
-    else if(EnemyIsRight())
-    {
-      //rotate right
-      motion.StopMotors(1);
-      TurnForwardRight(15,1);
-      
-      return;
-
-    }else if(EnemyIsLeft())
-    {
-      //rotate left
-      motion.StopMotors(1);
-      TurnBackRight(15,1);
-      return;
+      // blyat,RESET,CYKA
     }
   }
+  else if (initial_start_pin_state == 0)
+  {
+    robot_ready_state = true;
+  }
 
+  int current_start_pin_state = 0;
+  while (current_start_pin_state == 0)
+  {
+    // keep the robot locked in a loop until the start command  is received
+
+    current_start_pin_state = digitalRead(TELECOM_PIN);
+  }
+
+  // the program will continue only if the start command is received
+
+  while (current_start_pin_state == 1)
+  {
+    // do program loop
+    Execute();
+
+    current_start_pin_state = digitalRead(TELECOM_PIN);
+  }
+
+  // the program will continue only if the stop command is received
+  if (current_start_pin_state == 0)
+  {
+
+    // the stop command was received
+    // this is where the robot should stop all operations
+
+    while (true)
+    {
+
+      // for safety reasons the robot is locked in this loop
+      // you can flash a separate LED to let the user know
+      // the only way to exit this loop is to do a power cycle
+    }
+  }
 }
 
 void ReadIRSensorInfo()
@@ -242,33 +263,46 @@ void RushB(int RushBSpeed, int time)
   analogWrite(RM_PWM , RushBSpeed);
 }
 
-void SearchForEnemies()
+void Execute()
 {
-  if(!SeesWhite())
+//store IR sensor data
+
+  ReadIRSensorInfo();
+  ReadLineSensorInfo();
+
+  if(!SeesAnything())
   {
-    motion.Forward(SEARCH_SPEED,0);
+    //while no enemy detected,rotate around like a jerk
+    TurnAroundRight(15 , 50);
     return;
   }
 
-  //full stop
-  motion.StopMotors(0);
-  motion.Backward(SEARCH_SPEED , 1000);
-  motion.StopMotors(0);
-  TurnAroundRight(2*SEARCH_SPEED , 300);
+  else
+  {
+    if(EnemyIsFront())
+    {
+      //Rush B
 
+      RushB(90,50);
 
-  
-}
+      return;
+    }
 
-void Turn180(int speed = 5 , float radius = 0.40)
-{
-  //use with speed=5 and radius 0.4 for about 180 turn :))
+    //rotate towards enemy
+    else if(EnemyIsRight())
+    {
+      //rotate right
+      motion.StopMotors(1);
+      TurnForwardRight(15,1);
+      
+      return;
 
-  speed = map(speed,0,100,0,255);
-
-  int time = (int) ((PI * radius * 100)/speed);
-
-  time = time * 100;
-
-  motion.ArcTurn(speed,0,time);
+    }else if(EnemyIsLeft())
+    {
+      //rotate left
+      motion.StopMotors(1);
+      TurnBackRight(15,1);
+      return;
+    }
+  }
 }
