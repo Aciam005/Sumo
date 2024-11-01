@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "xmotionV3.h"
+#include "alin.h"
 
 #define SEARCH_SPEED 30
 #define COMBAT_SPEED 90
@@ -7,6 +8,14 @@
 #define LINE_READ_THRESHOLD 500
 //below -> WHITE
 //above -> BLACK
+
+enum ProgramType
+{
+  Alin,
+  Camila
+};
+
+ProgramType program;
 
 #pragma region PIN_DEFINITION
 
@@ -79,19 +88,53 @@ void Execute();
 
 void setup() {
 
-  pinMode(0, INPUT); // - ir stanga sasiu
-  pinMode(1, INPUT); // - ir stanga frontal
-  pinMode(2, INPUT); // - ir fata frontal
-  pinMode(3, INPUT); // - ir dreapta sasiu
-  pinMode(4, INPUT); // - ir frontal dreapta
-
-  pinMode(LEFT_LINESENSOR_PIN,INPUT);
-  pinMode(RIGHT_LINESENSOR_PIN,INPUT);
+  pinMode(5,INPUT);
+  pinMode(6,INPUT);
+  pinMode(7,INPUT);
   pinMode(TELECOM_PIN,INPUT);
+  
+  if(digitalRead(5))
+  {
+    //program alin
+    alin_init();
+    program = ProgramType::Alin;
+  }else if(digitalRead(6))
+  {
+    //program andrei
+      pinMode(0, INPUT); // - ir stanga sasiu
+      pinMode(1, INPUT); // - ir stanga frontal
+      pinMode(2, INPUT); // - ir fata frontal
+      pinMode(3, INPUT); // - ir dreapta sasiu
+      pinMode(4, INPUT); // - ir frontal dreapta
+
+      pinMode(LEFT_LINESENSOR_PIN,INPUT);
+      pinMode(RIGHT_LINESENSOR_PIN,INPUT);
+
+      program = ProgramType::Camila;
+  }else if(digitalRead(7))
+  {
+    //pizdec??
+    while(true){}
+  }else
+  {
+    while(true){}
+  }
+
+
+
+
 }
 
 void loop() {
-  Robochallange();
+  //Robochallange();
+
+  if(program == ProgramType::Alin)
+  {
+    str3();
+  }else if(program == ProgramType::Camila)
+  {
+    Execute();
+  }
 }
 
 void Robochallange()
@@ -124,7 +167,14 @@ void Robochallange()
   while (current_start_pin_state == 1)
   {
     // do program loop
-    Execute();
+    if(program == ProgramType::Alin)
+    {
+      str3();
+    }else if(program == ProgramType::Camila)
+    {
+      Execute();
+    }
+    
 
     current_start_pin_state = digitalRead(TELECOM_PIN);
   }
